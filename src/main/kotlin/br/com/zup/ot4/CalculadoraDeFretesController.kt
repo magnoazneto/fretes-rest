@@ -24,27 +24,19 @@ class CalculadoraDeFretesController(
 
         return try{
             val response = gRpcClient.calculaFrete(request)
-            HttpResponse.ok(FreteResponse(
-                cep = response.cep,
-                valor = response.valor
-            ))
+            HttpResponse.ok(FreteResponse(response.cep,response.valor))
         } catch (e: StatusRuntimeException){
             e.printStackTrace()
             when (e.status.code) {
-                Status.Code.INVALID_ARGUMENT ->
-                    throw HttpStatusException(HttpStatus.BAD_REQUEST, e.status.description)
+                Status.Code.INVALID_ARGUMENT -> throw HttpStatusException(HttpStatus.BAD_REQUEST, e.status.description)
                 Status.Code.PERMISSION_DENIED -> {
                     val statusProto = StatusProto.fromThrowable(e)
                         ?: throw HttpStatusException(HttpStatus.FORBIDDEN, e.status.description)
-                    val anyDetails = statusProto.detailsList[0]
-                    val details = anyDetails.unpack(ErrorDetails::class.java)
-
+                    val details = statusProto.detailsList[0].unpack(ErrorDetails::class.java)
                     throw HttpStatusException(HttpStatus.FORBIDDEN, "${details.code}: ${details.message}")
                 }
-                else ->
-                    throw HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.message)
+                else -> throw HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.message)
             }
-
         }
     }
 }
